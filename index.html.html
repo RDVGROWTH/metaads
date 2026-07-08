@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta Ads sin humo — RDV Growth</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #050505 !important; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+
+  .bg { position: fixed; inset: 0; background: #050505; transition: background 1s ease; z-index: 0; }
+  body.on .bg { background: #06080f; }
+
+  .stage {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 28px 16px 60px;
+    color: #eee;
+  }
+
+  .brand { font-size: 12px; letter-spacing: .3em; color: #666; margin-bottom: 6px; }
+  .brand b { color: #2f6bff; }
+
+  .hint {
+    font-size: 11px; letter-spacing: .35em; color: #7d8aa8;
+    text-align: center; transition: opacity .8s; margin-bottom: 4px;
+  }
+  body.on .hint { opacity: .25; }
+
+  /* ---------- LAMPARA ---------- */
+  .lamp-zone {
+    position: relative; width: 300px; height: 400px;
+    display: flex; flex-direction: column; align-items: center;
+    flex-shrink: 0; margin: 10px auto 0;
+  }
+  .shade {
+    position: relative; z-index: 3; margin-top: 30px;
+    width: 150px; height: 26px; border-radius: 50% / 60%;
+    background: linear-gradient(180deg,#1b1b1b,#0e0e0e);
+    transition: all .6s ease;
+  }
+  body.on .shade {
+    background: linear-gradient(180deg,#242c3e,#12161f);
+    box-shadow: 0 6px 30px rgba(90,139,255,.4), inset 0 -4px 12px rgba(140,175,255,.55);
+  }
+  .glow {
+    position: absolute; left: 50%; top: 48px;
+    width: 90px; height: 26px; transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(210,225,255,.95), rgba(90,139,255,0));
+    filter: blur(4px); opacity: 0; transition: opacity .5s ease; z-index: 4;
+  }
+  body.on .glow { opacity: 1; }
+  .cone {
+    position: absolute; top: 56px; left: 50%; margin-left: -170px;
+    width: 340px; height: 300px;
+    clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+    background: linear-gradient(180deg, rgba(140,175,255,.5), rgba(47,107,255,.1) 70%, rgba(47,107,255,0));
+    transform-origin: top center; transform: scaleY(.6); opacity: 0;
+    transition: opacity .8s ease, transform .8s cubic-bezier(.22,1,.36,1);
+    pointer-events: none; z-index: 1;
+  }
+  body.on .cone { opacity: 1; transform: scaleY(1); }
+  .smoke {
+    position: absolute; top: 120px; left: 50%; transform: translateX(-50%);
+    font-size: 13px; letter-spacing: .2em; color: #555;
+    transition: opacity .8s, transform .8s; z-index: 0; white-space: nowrap;
+  }
+  body.on .smoke { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+  .cord {
+    position: absolute; top: 58px; left: calc(50% + 44px); z-index: 5;
+    display: flex; flex-direction: column; align-items: center;
+    cursor: grab; padding: 0 18px 18px;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    transform-origin: top center;
+    user-select: none;
+  }
+  .cord.dragging { cursor: grabbing; }
+  .cord.snap { transition: transform .55s cubic-bezier(.3,1.8,.4,1); }
+  .cord-line {
+    width: 2px; height: 70px;
+    background: linear-gradient(180deg,#666,#3a3a3a);
+    pointer-events: none;
+  }
+  .cord.snap .cord-line { transition: height .55s cubic-bezier(.3,1.8,.4,1); }
+  .cord-handle {
+    width: 14px; height: 30px; border-radius: 7px; background: #3a4666;
+    transition: background .5s, box-shadow .5s;
+    pointer-events: none;
+  }
+  body.on .cord-handle { background: #5a8bff; box-shadow: 0 0 14px rgba(90,139,255,.8); }
+  @media (prefers-reduced-motion: reduce) {
+    .cord.snap, .cord.snap .cord-line { transition: none; }
+  }
+  .pole { width: 6px; height: 270px; background: linear-gradient(90deg,#0a0a0a,#333,#0a0a0a); margin-top: -14px; z-index: 2; }
+  .base { width: 120px; height: 12px; border-radius: 6px; background: linear-gradient(180deg,#222,#050505); z-index: 2; }
+
+  /* ---------- LIBRO ---------- */
+  .book {
+    width: 100%; max-width: 720px;
+    opacity: 0; transform: translateY(30px);
+    pointer-events: none; max-height: 0; overflow: hidden;
+    transition: opacity .9s ease .2s, transform .9s cubic-bezier(.22,1,.36,1) .2s, max-height .1s linear .9s;
+  }
+  body.on .book {
+    opacity: 1; transform: translateY(0);
+    pointer-events: auto; max-height: none;
+    transition: opacity .9s ease .2s, transform .9s cubic-bezier(.22,1,.36,1) .2s;
+  }
+
+  .cover {
+    text-align: center;
+    padding: 40px 20px 50px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    margin-bottom: 40px;
+  }
+  .cover h1 {
+    font-size: clamp(44px, 10vw, 84px);
+    line-height: .95; font-weight: 900; color: #fff;
+    letter-spacing: -.02em;
+  }
+  .cover h1 span { color: #2f6bff; }
+  .cover .tag { margin-top: 18px; font-size: 15px; color: #9aa3b5; }
+  .cover .who { margin-top: 8px; font-size: 12px; letter-spacing: .3em; color: #5a8bff; }
+
+  .chapter { margin-bottom: 44px; }
+  .cap-num { font-size: 11px; letter-spacing: .3em; color: #5a8bff; margin-bottom: 6px; text-transform: uppercase; }
+  .chapter h2 {
+    font-size: clamp(24px, 5vw, 32px); color: #fff;
+    line-height: 1.15; margin-bottom: 16px; font-weight: 800;
+  }
+  .chapter h3 {
+    font-size: 17px; color: #dfe6f5; margin: 24px 0 10px; font-weight: 700;
+  }
+  .chapter p { font-size: 15.5px; line-height: 1.7; color: #b8bfce; margin-bottom: 14px; }
+  .chapter strong { color: #fff; }
+  .chapter ul { list-style: none; margin: 0 0 14px; }
+  .chapter li {
+    font-size: 15px; line-height: 1.65; color: #b8bfce;
+    padding: 8px 0 8px 24px; position: relative;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+  }
+  .chapter li:last-child { border-bottom: none; }
+  .chapter li::before { content: "→"; position: absolute; left: 0; color: #2f6bff; font-weight: 700; }
+
+  .key {
+    border-left: 3px solid #2f6bff;
+    background: rgba(47,107,255,.07);
+    padding: 16px 18px; border-radius: 0 10px 10px 0;
+    margin: 20px 0; font-size: 15px; line-height: 1.6; color: #dfe6f5;
+  }
+
+  .video {
+    display: block; margin: 18px 0 0;
+    font-size: 13px; color: #5a8bff; text-decoration: none;
+    border: 1px solid rgba(90,139,255,.3); border-radius: 10px;
+    padding: 12px 16px;
+  }
+  .video b { letter-spacing: .15em; }
+
+  .outro {
+    border-top: 1px solid rgba(255,255,255,.08);
+    padding-top: 36px; text-align: center;
+  }
+  .outro h2 { font-size: 26px; color: #fff; margin-bottom: 16px; }
+  .outro p { font-size: 15.5px; line-height: 1.7; color: #b8bfce; margin-bottom: 14px; text-align: left; }
+  .cta {
+    display: inline-block; margin-top: 10px;
+    padding: 15px 34px; border-radius: 12px;
+    background: linear-gradient(90deg, #2f6bff, #5a8bff);
+    color: #fff; font-weight: 700; font-size: 15px; letter-spacing: .04em;
+    text-decoration: none; box-shadow: 0 8px 24px rgba(47,107,255,.35);
+    transition: filter .2s, transform .1s;
+  }
+  .cta:hover { filter: brightness(1.12); }
+  .cta:active { transform: scale(.98); }
+  .sign { margin-top: 22px; font-size: 12px; letter-spacing: .2em; color: #556; }
+
+  .footer { margin-top: 40px; font-size: 11px; letter-spacing: .2em; color: #444; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="bg"></div>
+
+  <div class="stage">
+    <div class="brand">RDV <b>GROWTH</b></div>
+    <p class="hint">TIRÁ DEL CORDÓN Y LEELO SIN HUMO</p>
+
+    <div class="lamp-zone">
+      <div class="smoke">~ ~ humo ~ ~</div>
+      <div class="shade"></div>
+      <div class="glow"></div>
+      <div class="cone"></div>
+      <div class="cord" id="cord" role="button" tabindex="0" aria-label="Tirá del cordón para prender la lámpara y leer el libro">
+        <div class="cord-line"></div>
+        <div class="cord-handle"></div>
+      </div>
+      <div class="pole"></div>
+      <div class="base"></div>
+    </div>
+
+    <div class="book" id="book">
+
+      <div class="cover">
+        <h1>DEJÁ DE<br>QUEMAR<br><span>PLATA.</span></h1>
+        <p class="tag">Meta Ads sin humo — la guía para comercios locales.</p>
+        <p class="who">RDV GROWTH</p>
+      </div>
+
+      <div class="chapter">
+        <h2>Antes de empezar, la verdad</h2>
+        <p>Este ebook no te va a hacer millonario. No vas a renunciar a tu trabajo en 30 días ni vas a facturar $10.000 dólares por mes desde una playa. Si buscabas eso, cerrá esta página y listo.</p>
+        <p>Lo que sí vas a tener cuando termines de leer: <strong>un sistema claro para hacer publicidad en Instagram y Facebook sin tirar plata.</strong> El mismo sistema que uso con mis clientes en Buenos Aires. Sin vueltas, sin tecnicismos innecesarios, sin humo.</p>
+        <p>¿Quién soy para decirte esto? Me llamo <strong>Rodrigo Del Valle</strong>. Me fui de mi casa a los 16, terminé el secundario solo y me armé una vida en Buenos Aires laburando en gastronomía y comercio durante años. Conozco el mostrador. Sé lo que es un mes flojo, un local vacío un martes a la tarde, y la ansiedad de no saber si la plata que ponés en publicidad vuelve o se evapora.</p>
+        <p>Hoy manejo RDV Growth, donde ayudo a comercios y marcas locales a crecer con Meta Ads y estrategia de marca. No te voy a mentir con que tengo 500 clientes: estoy construyendo esto en público, paso a paso, y justamente por eso te cuento lo que funciona de verdad y no lo que queda lindo en un reel.</p>
+        <div class="key">Regla de oro de esta guía: si algo no te acerca a una venta, no lo hagas. Los likes no pagan el alquiler.</div>
+        <h3>Cómo usar esta guía</h3>
+        <p>Está pensada para leerse en orden. Cada capítulo se apoya en el anterior. Si nunca hiciste publicidad, empezá por el capítulo 1. Si ya hiciste anuncios con el botón azul de “Promocionar” y sentís que tiraste plata, también empezá por el capítulo 1 — ahí te explico por qué pasó eso.</p>
+      </div>
+
+      <div class="chapter">
+        <p class="cap-num">Capítulo 1</p>
+        <h2>Cuándo Meta Ads sirve (y cuándo no)</h2>
+        <p>Nadie te dice esto, pero es lo primero que tenés que saber: <strong>Meta Ads no arregla un negocio roto.</strong> Si tu producto no se vende cuando lo ve gente, mostrárselo a más gente solo hace que más personas no te compren. Primero el producto, después la pauta.</p>
+        <h3>Meta Ads te sirve si...</h3>
+        <ul>
+          <li>Tenés un producto o servicio que ya le vendiste a alguien que no sea tu familia.</li>
+          <li>Podés atender más clientes de los que tenés hoy (mesas vacías, turnos libres, stock parado).</li>
+          <li>Tenés al menos un perfil de Instagram presentable: 9 publicaciones decentes y una bio que explica qué vendés.</li>
+          <li>Estás dispuesto a invertir de forma sostenida al menos 2-3 meses. Una semana de pauta no es una prueba, es una moneda al aire.</li>
+        </ul>
+        <h3>Meta Ads NO te sirve (todavía) si...</h3>
+        <ul>
+          <li>No sabés cuánto te cuesta producir lo que vendés ni cuánto ganás por venta. Sin ese número, no podés saber si la publicidad es negocio.</li>
+          <li>Tu Instagram es un desierto o un caos. El anuncio lleva gente a tu perfil: si el perfil espanta, pagaste por espantar gente.</li>
+          <li>Esperás resultados en 48 horas. El algoritmo necesita datos, y los datos llevan tiempo.</li>
+        </ul>
+        <div class="key">El anuncio trae la gente hasta la puerta. Lo que pasa después — tu perfil, tu respuesta en los mensajes, tu producto — es lo que vende.</div>
+        <h3>La cuenta que tenés que hacer antes de poner un peso</h3>
+        <p>Agarrá papel y lápiz. Anotá: ¿cuánto ganás (limpio) por cada venta? Supongamos que vendés tortas y te quedan $8.000 por torta. Si conseguir un cliente por publicidad te cuesta $3.000, es negocio. Si te cuesta $9.000, estás pagando por trabajar. Este número — cuánto podés pagar por conseguir un cliente — es tu brújula. Todo lo demás en esta guía existe para bajar ese costo.</p>
+      </div>
+
+      <div class="chapter">
+        <p class="cap-num">Capítulo 2</p>
+        <h2>Los cimientos: Business Manager</h2>
+        <p>Acá es donde el 90% de los comercios arranca mal. Usan el botón “Promocionar publicación” desde la app de Instagram, que es la forma más cara y menos precisa de hacer publicidad en Meta. Es como pagar entrada VIP para ver el recital desde afuera del estadio.</p>
+        <h3>Por qué NO usar el botón azul</h3>
+        <p>El botón de promocionar te da tres opciones básicas y optimiza para interacción (likes, comentarios), no para ventas. Meta gana igual, vos no. La herramienta profesional se llama <strong>Administrador de Anuncios (Ads Manager)</strong> y es gratis. Misma plata, resultados completamente distintos.</p>
+        <h3>Qué configurar, en orden</h3>
+        <ul>
+          <li><strong>1. Business Manager</strong> (business.facebook.com): es la carpeta madre donde vive todo — tu página, tu Instagram, tu cuenta publicitaria. Creala con tu mail de trabajo, no con uno personal que puedas perder.</li>
+          <li><strong>2. Página de Facebook conectada a tu Instagram:</strong> aunque solo te importe Instagram, Meta exige una página de Facebook. Conectalas desde la configuración de Instagram (Cuenta &gt; Compartir en otras apps).</li>
+          <li><strong>3. Cuenta publicitaria:</strong> dentro del Business Manager, creá tu cuenta publicitaria en moneda local y zona horaria de Argentina. Esto no se puede cambiar después, así que hacelo bien la primera vez.</li>
+          <li><strong>4. Método de pago:</strong> cargá tu tarjeta. Tip: activá un límite de gasto de la cuenta desde el primer día. Es tu red de seguridad contra errores de configuración.</li>
+          <li><strong>5. Verificá que todo esté vinculado:</strong> tu Instagram tiene que aparecer como activo dentro del Business Manager. Si no aparece, tus anuncios van a salir sin tu nombre de usuario y parecen spam.</li>
+        </ul>
+        <div class="key">Media hora de configuración prolija te ahorra meses de problemas. La mayoría de las cuentas bloqueadas y anuncios rechazados nacen de una configuración hecha a las apuradas.</div>
+        <h3>El error que bloquea cuentas</h3>
+        <p>Meta es paranoico con las cuentas nuevas. No hagas esto: crear la cuenta hoy y poner $50.000 de presupuesto mañana. Arrancá con montos chicos la primera semana, dejá que la cuenta genere historial, y subí el gasto de forma gradual. Las cuentas que explotan de gasto de un día para el otro se bloquean, y recuperarlas es un trámite infernal.</p>
+        <a class="video" href="https://youtube.com/watch?v=6QgWlc2rTwE" target="_blank" rel="noopener"><b>▶ MIRALO EN VIDEO</b> — Configuración completa del Business Manager y la cuenta publicitaria, paso a paso.</a>
+      </div>
+
+      <div class="chapter">
+        <p class="cap-num">Capítulo 3</p>
+        <h2>El Píxel: tu espía trabajando gratis</h2>
+        <p>El Píxel (hoy parte del sistema de “conjuntos de datos” de Meta) es un código que ponés en tu web y que le avisa a Meta qué hace la gente: quién entró, quién miró un producto, quién compró. ¿Para qué sirve? Para que Meta aprenda quién te compra y salga a buscar más gente parecida. <strong>Sin píxel, Meta dispara a ciegas. Con píxel, apunta.</strong></p>
+        <h3>¿Y si no tengo página web?</h3>
+        <p>Tranquilo: la mayoría de los comercios locales arranca sin web y está perfecto. Si tu venta pasa por mensajes de Instagram o WhatsApp, el píxel no es urgente. Meta igual aprende de lo que pasa dentro de sus apps: quién te escribe, quién guarda tus publicaciones, quién visita tu perfil. Volvé a este capítulo el día que tengas tienda online.</p>
+        <h3>Si tenés web o tienda online</h3>
+        <ul>
+          <li><strong>Tiendanube, Shopify, WooCommerce:</strong> todas tienen integración directa con Meta. Es pegar un número (el ID del conjunto de datos) en un campo de configuración. No hace falta tocar código.</li>
+          <li><strong>Eventos que importan:</strong> como mínimo configurá PageView (visitó la web), ViewContent (miró un producto), AddToCart (agregó al carrito) y Purchase (compró). Las integraciones de las tiendas los configuran solos.</li>
+          <li><strong>Verificá que funcione:</strong> en el Administrador de Eventos de Meta podés ver en tiempo real si el píxel registra actividad. Entrá a tu propia web y fijate si aparece el evento. Dos minutos que te ahorran semanas de pauta desperdiciada.</li>
+        </ul>
+        <div class="key">El píxel necesita tiempo y datos para aprender. Instalalo hoy aunque no vayas a pautar hasta el mes que viene: cada visita que registra es entrenamiento gratis para tus futuros anuncios.</div>
+        <h3>El error clásico</h3>
+        <p>Pautar tráfico a una web sin píxel instalado. Pagaste por llevar gente y no tenés idea de qué hicieron: es como pagar un flete sin saber a qué dirección fue. Primero el píxel, después la pauta. Siempre en ese orden.</p>
+        <a class="video" href="https://youtube.com/watch?v=LKFkSlVPtO4" target="_blank" rel="noopener"><b>▶ MIRALO EN VIDEO</b> — Cómo vincular píxel y catálogo con Tiendanube.</a>
+      </div>
+
+      <div class="chapter">
+        <p class="cap-num">Capítulo 4</p>
+        <h2>Objetivos de campaña: elegí mal y quemás plata</h2>
+        <p>Cuando creás una campaña, Meta te pregunta qué querés lograr. Esta es LA decisión más importante de toda tu publicidad, porque le dice al algoritmo a quién mostrarle tu anuncio. Y acá va el concepto que casi nadie entiende:</p>
+        <div class="key">Meta te da exactamente lo que le pedís. Si pedís likes, te trae gente que da likes. Si pedís mensajes, gente que escribe. Si pedís ventas, gente que compra. El que da likes y el que compra casi nunca son la misma persona.</div>
+        <h3>Los objetivos que le sirven a un comercio local</h3>
+        <ul>
+          <li><strong>Interacción &gt; Mensajes (WhatsApp/Instagram):</strong> el rey para comercios locales. Le pedís a Meta gente que inicie conversaciones. Ideal si vendés por DM o WhatsApp: turnos, pedidos, presupuestos, reservas.</li>
+          <li><strong>Ventas:</strong> solo si tenés tienda online con píxel funcionando. Meta optimiza para encontrar compradores. Es el objetivo más caro por resultado, pero cada resultado es plata en tu cuenta.</li>
+          <li><strong>Tráfico:</strong> lleva gente a tu web o perfil. Útil con moderación: mucha gente que hace clic no hace nada más. Usalo solo si tu web está preparada para convertir.</li>
+          <li><strong>Reconocimiento:</strong> que te conozcan. Para un comercio chico con presupuesto chico, es un lujo que todavía no te podés dar. Primero vendé, después construí fama.</li>
+        </ul>
+        <h3>Los objetivos trampa</h3>
+        <p>Interacción con la publicación (likes y comentarios) infla el ego y vacía la billetera. Miles de likes de gente que jamás te va a comprar. Es el objetivo que usa el botón azul de “Promocionar” — ahora entendés por qué te dije que no lo uses.</p>
+        <h3>Regla práctica</h3>
+        <p>¿Vendés por mensajes? Campaña de Mensajes. ¿Vendés por tienda online? Campaña de Ventas. ¿No te decidís? Mensajes. En Argentina, el comercio local vive en WhatsApp, y una conversación es mil veces más valiosa que un like.</p>
+      </div>
+
+      <div class="chapter">
+        <p class="cap-num">Capítulo 5</p>
+        <h2>Tu primer anuncio real, paso a paso</h2>
+        <p>Llegó el momento. Vamos a armar tu primera campaña en el Administrador de Anuncios, con la estructura exacta. Meta organiza todo en tres niveles: <strong>Campaña</strong> (el objetivo), <strong>Conjunto de anuncios</strong> (a quién y con cuánta plata) y <strong>Anuncio</strong> (lo que la gente ve).</p>
+        <h3>Nivel 1 — Campaña</h3>
+        <ul>
+          <li><strong>Objetivo:</strong> Interacción, con conversiones en mensajes (según lo que vimos en el capítulo 4).</li>
+          <li><strong>Nombre claro:</strong> “Mensajes - Promo Invierno - Julio”. En tres meses vas a agradecer poder entender qué era cada campaña.</li>
+        </ul>
+        <h3>Nivel 2 — Conjunto de anuncios</h3>
+        <ul>
+          <li><strong>Ubicación:</strong> tu zona real de influencia. Si tenés una cafetería en Palermo, pautale a un radio de 3-5 km, no a todo Buenos Aires. La gente no cruza la ciudad por un café.</li>
+          <li><strong>Edad y género:</strong> definilos según tu cliente real, no tu cliente soñado. Mirá quién te compra hoy.</li>
+          <li><strong>Intereses:</strong> acá viene la sorpresa — cuanto menos toques, mejor. El algoritmo de Meta hoy es más inteligente que cualquier segmentación manual. Elegí 2-3 intereses amplios relacionados a tu rubro o directamente dejalo abierto y dejá que el píxel y la ubicación hagan el trabajo.</li>
+          <li><strong>Ubicaciones (placements):</strong> automáticas. Meta reparte tu plata donde rinde más.</li>
+        </ul>
+        <h3>Nivel 3 — El anuncio</h3>
+        <ul>
+          <li><strong>Formato ganador para arrancar:</strong> video vertical de 15-30 segundos, grabado con tu celular, mostrando tu producto real en tu local real. La producción casera genera más confianza que el diseño perfecto: la gente compra realidad, no publicidad.</li>
+          <li><strong>Los primeros 2 segundos deciden todo:</strong> arrancá con el producto en pantalla o una frase que golpee. Nada de logos animados de 5 segundos.</li>
+          <li><strong>Texto corto:</strong> qué vendés, por qué conviene, qué hacer ahora. Tres renglones. “Escribinos y te lo reservamos” funciona más que cualquier eslogan creativo.</li>
+          <li><strong>Llamado a la acción:</strong> botón “Enviar mensaje”. Que el camino del interesado sea de un solo toque.</li>
+        </ul>
+        <div class="key">Publicá 2 o 3 versiones del anuncio con distinta imagen o video, mismo texto. Meta detecta solo cuál funciona mejor y le pone la plata ahí. Nunca apuestes todo a un solo creativo.</div>
+        <a class="video" href="https://youtube.com/watch?v=cAjYEO6Tpp0" target="_blank" rel="noopener"><b>▶ MIRALO EN VIDEO</b> — La interfaz del Administrador de Anuncios en acción. Ojo: mirá la parte técnica de dónde apretar; la estrategia seguila con esta guía.</a>
+      </div>
+
+      <div class="chapter">
+        <p class="cap-num">Capítulo 6</p>
+        <h2>Ad Library: espiá a tu competencia (es legal)</h2>
+        <p>Meta tiene una herramienta pública y gratuita que casi ningún comerciante conoce: la <strong>Biblioteca de Anuncios</strong> (facebook.com/ads/library). Ahí podés ver TODOS los anuncios activos de cualquier marca del mundo. Sí, también los de tu competencia.</p>
+        <h3>Cómo usarla como un profesional</h3>
+        <ul>
+          <li><strong>Buscá a tu competencia directa:</strong> escribí el nombre de los 3-5 negocios de tu rubro que te parece que la rompen. Mirá qué anuncios tienen activos.</li>
+          <li><strong>El dato de oro — la fecha:</strong> fijate desde cuándo está activo cada anuncio. Un anuncio corriendo hace 3 meses es un anuncio que FUNCIONA (nadie banca 3 meses un anuncio que pierde plata). Un anuncio de hace 4 días no te dice nada todavía.</li>
+          <li><strong>Analizá la estructura, no copies el contenido:</strong> ¿arrancan con precio o con problema? ¿Video o foto? ¿Qué dice el primer renglón? ¿Cuál es el llamado a la acción? Eso es lo que te llevás.</li>
+          <li><strong>Mirá marcas grandes de tu rubro en otros países:</strong> una cafetería de especialidad en Madrid o Ciudad de México ya probó con presupuestos enormes qué funciona. Aprendé gratis de su inversión.</li>
+        </ul>
+        <div class="key">Antes de crear tu anuncio, pasá 30 minutos en la Ad Library. Es la diferencia entre adivinar y saber.</div>
+        <h3>Qué NO hacer</h3>
+        <p>Copiar textual. Primero, porque queda obvio y tu zona es chica: la gente se da cuenta. Segundo, porque lo que funciona para otro depende de su marca, su historia y su público. Robá la estructura, jamás las palabras.</p>
+        <a class="video" href="https://facebook.com/ads/library" target="_blank" rel="noopener"><b>▶ ACCESO DIRECTO</b> — Biblioteca de Anuncios de Meta.</a>
+      </div>
+
+      <div class="chapter">
+        <p class="cap-num">Capítulo 7</p>
+        <h2>Métricas: las que importan y las de vanidad</h2>
+        <p>Abrís el Administrador de Anuncios y te bombardea con 40 columnas de números. Respirá. Para un comercio local, importan cinco. El resto es ruido.</p>
+        <h3>Las 5 métricas que miro con mis clientes</h3>
+        <ul>
+          <li><strong>1. Costo por resultado:</strong> cuánto te cuesta cada mensaje/venta/clic según tu objetivo. Es LA métrica. Si tu objetivo son mensajes y cada conversación te cuesta $500, y de cada 4 conversaciones cerrás 1 venta, tu cliente te cuesta $2.000. ¿Ganás más que eso por venta? Seguí. ¿Ganás menos? Algo hay que cambiar.</li>
+          <li><strong>2. CTR (tasa de clics):</strong> qué porcentaje de los que ven tu anuncio hace clic. Arriba de 1% vas bien; arriba de 2%, muy bien. CTR bajo = tu creativo no llama la atención. Es el primer número que reviso cuando algo no funciona.</li>
+          <li><strong>3. CPM (costo por mil impresiones):</strong> cuánto pagás por mostrar el anuncio mil veces. Sirve para comparar entre campañas. Un CPM que se dispara suele avisar que el público está saturado o el anuncio es de baja calidad para Meta.</li>
+          <li><strong>4. Frecuencia:</strong> cuántas veces vio tu anuncio la misma persona. Pasada de 3-4, la gente ya te vio y no te compró: cambiá el creativo o el público antes de seguir quemando plata en los mismos ojos.</li>
+          <li><strong>5. Resultados totales:</strong> mensajes recibidos, ventas hechas. Lo obvio, pero cruzalo siempre con lo que pasa fuera de Meta: ¿esos mensajes terminaron en ventas? Meta no ve tu caja; vos sí.</li>
+        </ul>
+        <h3>Las métricas de vanidad</h3>
+        <p>Likes, comentarios, seguidores nuevos, alcance. Lindas para el ego, inútiles para la caja. Un anuncio con 500 likes y cero mensajes es un fracaso caro. Un anuncio con 12 likes y 40 conversaciones que cerraron 10 ventas es un éxito rotundo. No dejes que el aplauso te distraiga de la caja registradora.</p>
+        <div class="key">Ritual semanal de 15 minutos: mismo día, misma hora, revisá tus 5 métricas y anotalas en una planilla. Las decisiones se toman comparando semanas, no mirando un martes suelto con ansiedad.</div>
+      </div>
+
+      <div class="chapter">
+        <p class="cap-num">Capítulo 8</p>
+        <h2>Presupuesto: cuánto poner sin miedo</h2>
+        <p>La pregunta que todos me hacen primero: “¿cuánta plata tengo que poner?”. Y la respuesta honesta: menos de lo que pensás para arrancar, más de lo que te gustaría para escalar. Vamos con números reales.</p>
+        <h3>Fase 1 — Aprendizaje (semanas 1 a 3)</h3>
+        <p>Presupuesto chico y constante: el equivalente a 3-5 dólares por día está bien para un comercio local en Argentina. El objetivo de esta fase NO es vender (si vendés, bienvenido): es juntar datos. Qué creativo funciona, qué costo por mensaje tenés, qué días rinde más. Estás pagando por información, y es la información más barata que vas a comprar en tu vida comercial.</p>
+        <h3>Fase 2 — Optimización (semanas 4 a 8)</h3>
+        <p>Ya sabés qué anuncio funciona. Apagá los que no rinden (sin culpa, para eso era la prueba) y concentrá el presupuesto en el ganador. Si el costo por resultado cierra con tu margen, subí el presupuesto de a 20% cada 3-4 días. Nunca lo dupliques de golpe: el algoritmo se resetea y volvés a foja cero.</p>
+        <h3>Fase 3 — Escalar (mes 3 en adelante)</h3>
+        <p>Acá el presupuesto lo define una sola cosa: tu capacidad. Si cada $10.000 invertidos te devuelven $30.000 en ventas y podés atender la demanda, el límite lo pone tu operación, no Meta. He visto comercios frenar la pauta porque no daban abasto — ese es un lindo problema.</p>
+        <div class="key">Regla de bolsillo: nunca pautes plata que necesitás para pagar cuentas este mes. La publicidad es inversión, y toda inversión necesita margen para respirar.</div>
+        <h3>Los errores de presupuesto que veo todas las semanas</h3>
+        <ul>
+          <li>Poner mucho 3 días, asustarse y apagar todo. El algoritmo nunca llegó a aprender: plata tirada.</li>
+          <li>Cambiar el anuncio cada 48 horas porque “no funciona”. Dale mínimo 5-7 días antes de juzgar.</li>
+          <li>Repartir $1.000 entre 6 campañas. Mejor una campaña bien alimentada que seis muriéndose de hambre.</li>
+        </ul>
+      </div>
+
+      <div class="chapter">
+        <p class="cap-num">Capítulo 9</p>
+        <h2>Los errores que veo todos los días</h2>
+        <p>Cierro con la lista negra: los errores que me encuentro una y otra vez en cuentas de comercios locales. Si evitás estos, ya estás adelante del 80% de tu competencia.</p>
+        <ul>
+          <li><strong>Pautar con el perfil abandonado.</strong> El anuncio genera interés, la persona entra a tu perfil, y encuentra la última publicación de hace 2 meses. Confianza destruida, plata perdida. Publicá al menos 2-3 veces por semana mientras pautás.</li>
+          <li><strong>Tardar horas en responder mensajes.</strong> Pagaste para que te escriban... y respondés a la noche. El interés se enfría en minutos. Configurá respuestas rápidas, avisos automáticos, o respondé desde el celu apenas suena.</li>
+          <li><strong>Vender el producto en vez del resultado.</strong> Nadie compra “torta de chocolate de 24 cm”. Compran quedar bien en el cumpleaños de su vieja. Tu anuncio tiene que hablar de lo que la persona gana, no de la ficha técnica.</li>
+          <li><strong>Cambiar todo a la vez.</strong> Cambiaste imagen, texto, público y presupuesto el mismo día. Algo mejoró... ¿qué fue? Nunca lo vas a saber. Un cambio a la vez, como en la cocina.</li>
+          <li><strong>No tener oferta.</strong> “Conocé nuestros productos” no es una razón para escribirte. “Esta semana, 2x1 en cafés de especialidad de 16 a 18h” sí lo es. Dale a la gente un motivo concreto para actuar hoy.</li>
+          <li><strong>Rendirse en la semana 2.</strong> Meta Ads es un sistema que mejora con datos, y los datos llevan tiempo. Los que ganan son los que sostienen y ajustan, no los que prueban una semana y declaran que “la publicidad no funciona”.</li>
+        </ul>
+        <div class="key">La publicidad no es magia: es un sistema. Configuración prolija + creativo honesto + oferta clara + medición semanal + paciencia. Eso es todo. Eso es lo que nadie te vende en un reel, porque la verdad no es viral.</div>
+      </div>
+
+      <div class="outro">
+        <h2>¿Y ahora qué?</h2>
+        <p>Tenés dos caminos, y los dos están bien.</p>
+        <p><strong>Camino 1: aplicá esta guía vos mismo.</strong> Tenés todo lo necesario para armar tu primera campaña esta semana. Andá capítulo por capítulo y no saltees la parte de la configuración, aunque sea la menos divertida.</p>
+        <p><strong>Camino 2: si preferís que alguien lo haga por vos</strong> — o que revise lo que ya armaste — para eso existe RDV Growth. Trabajo con pocos clientes a la vez, de cerca, y sin prometerte la luna: números claros y trabajo honesto.</p>
+        <a class="cta" href="https://ig.me/m/rdvgrowth" target="_blank" rel="noopener">ESCRIBIME “GUÍA” POR INSTAGRAM</a>
+        <p class="sign">RODRIGO DEL VALLE · RDV GROWTH · @RDVGROWTH · BUENOS AIRES</p>
+      </div>
+
+    </div>
+
+    <div class="footer">@RDVGROWTH · SIN HUMO DESDE BUENOS AIRES</div>
+  </div>
+
+<script>
+  const cord = document.getElementById('cord');
+  const line = cord.querySelector('.cord-line');
+  const REST = 70;          // largo del cordon en reposo
+  const HANDLE = 30;        // alto de la manija
+  const THRESHOLD = 135;    // cuanto hay que estirar para que prenda
+  let dragging = false, anchorX = 0, anchorY = 0, maxLen = 0, startX = 0, startY = 0;
+
+  function fire() {
+    document.body.classList.toggle('on');
+    if (document.body.classList.contains('on')) {
+      setTimeout(() => {
+        document.getElementById('book').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 600);
+    }
+  }
+
+  cord.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    cord.setPointerCapture(e.pointerId);
+    cord.classList.remove('snap');
+    cord.classList.add('dragging');
+    const r = cord.getBoundingClientRect();
+    anchorX = r.left + r.width / 2;
+    anchorY = r.top;
+    startX = e.clientX; startY = e.clientY;
+    maxLen = REST + HANDLE;
+    dragging = true;
+  });
+
+  cord.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - anchorX;
+    const dy = Math.max(e.clientY - anchorY, 30);
+    let len = Math.min(Math.hypot(dx, dy), 200);
+    let ang = -Math.atan2(dx, dy) * 180 / Math.PI;
+    ang = Math.max(-65, Math.min(65, ang));
+    line.style.height = Math.max(len - HANDLE, 30) + 'px';
+    cord.style.transform = 'rotate(' + ang + 'deg)';
+    if (len > maxLen) maxLen = len;
+  });
+
+  function release(e) {
+    if (!dragging) return;
+    dragging = false;
+    cord.classList.remove('dragging');
+    cord.classList.add('snap');
+    line.style.height = REST + 'px';
+    cord.style.transform = 'rotate(0deg)';
+    const tap = Math.hypot(e.clientX - startX, e.clientY - startY) < 8;
+    if (maxLen > THRESHOLD || tap) fire();
+  }
+  cord.addEventListener('pointerup', release);
+  cord.addEventListener('pointercancel', release);
+
+  cord.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
+  });
+</script>
+</body>
+</html>
